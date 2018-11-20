@@ -20,14 +20,14 @@ public class BillDetails implements Serializable {
     private Boolean isOrderSuccessful;
     private List<OrderedProduct> successfulOrderedProducts;
     private List<OrderedProduct> failedOrderedProducts;
-    private Date orderDate;
+    private String billingDate;
 
-    public Date getOrderDate() {
-        return orderDate;
+    public String getBillingDate() {
+        return billingDate;
     }
 
-    public void setOrderDate(Date orderDate) {
-        this.orderDate = orderDate;
+    public void setBillingDate(String billingDate) {
+        this.billingDate = billingDate;
     }
 
     public List<OrderedProduct> getSuccessfulOrderedProducts() {
@@ -137,7 +137,7 @@ public class BillDetails implements Serializable {
                 ", isOrderSuccessful=" + isOrderSuccessful +
                 ", successfulOrderedProducts=" + successfulOrderedProducts +
                 ", failedOrderedProducts=" + failedOrderedProducts +
-                ", orderDate=" + orderDate +
+                ", billingDate=" + billingDate +
                 '}';
     }
 }

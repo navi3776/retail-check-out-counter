@@ -20,7 +20,6 @@ public class OrderCheckOutController {
     @ResponseBody
     public BillDetails checkOutOrder(@RequestBody CheckOutOrderDetails checkOutOrderDetails) {
         logger.info(String.format(" Entering OrderCheckOutController for the current order with order details [%s]",checkOutOrderDetails));
-
         BillDetails billDetails = placeOrderService.placeOrder(checkOutOrderDetails);
         logger.info(String.format(" Exiting the OrderCheckOutController with order status as [%s]",billDetails .getReturnMessage()));
         return billDetails;
