@@ -12,6 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import javax.transaction.Transactional;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -20,6 +23,8 @@ import java.util.stream.Collectors;
 public class PlaceOrderServiceImpl implements PlaceOrderService {
 
     private Logger logger = LogManager.getLogger(OrderCheckOutController.class);
+
+    public static final String BILL_DETAIL_DATE_FORMAT = "dd/MM/yyyy";
 
     @Autowired
     private CustomerService customerService;
@@ -56,20 +61,25 @@ public class PlaceOrderServiceImpl implements PlaceOrderService {
 
         List<OrderedProduct> orderedProducts = checkOutOrderDetails.getOrderedProducts();
 
-        Map<Long, Product> products = productService.getProductDetailsForOrderedProductIds(getProductIds(orderedProducts));
-        List<OrderedProduct> productsNotFoundInInventory = findProductsNotAvailableInInventory(orderedProducts, products);
+        try{
+            Map<Long, Product> products = productService.getProductDetailsForOrderedProductIds(getProductIds(orderedProducts));
+            List<OrderedProduct> productsNotFoundInInventory = findProductsNotAvailableInInventory(orderedProducts, products);
 
-        if (CollectionUtils.isEmpty(productsNotFoundInInventory)) {
-            logger.info(" All Ordered Products are available in the inventory, hence proceeding ahead.");
-            List<Product> productListForOrder = processOrderedProductsAndCalculateCostAndTaxes(orderedProducts, products, billDetails);
-            if (!CollectionUtils.isEmpty(productListForOrder)) {
-                Orders orders = persistOrder(productListForOrder);
-                updateBillDetails(billDetails, orders);
+            if (CollectionUtils.isEmpty(productsNotFoundInInventory)) {
+                logger.info(" All Ordered Products are available in the inventory, hence proceeding ahead.");
+                List<Product> productListForOrder = processOrderedProductsAndCalculateCostAndTaxes(orderedProducts, products, billDetails);
+                if (!CollectionUtils.isEmpty(productListForOrder)) {
+                    Orders orders = persistOrder(productListForOrder);
+                    updateBillDetails(billDetails, orders);
+                }
+            } else {
+                String productsNotFoundInInventoryString = convertListToDelimitedString(productsNotFoundInInventory);
+                logger.info(String.format(" Following list of the product/product's [%s] are not available for current order", productsNotFoundInInventoryString));
+                billDetails.setReturnMessage(String.format(" Following list of the product/product's [%s] are not available", productsNotFoundInInventoryString));
             }
-        } else {
-            String productsNotFoundInInventoryString = convertListToDelimitedString(productsNotFoundInInventory);
-            logger.info(String.format(" Following list of the product/product's [%s] are not available for current order", productsNotFoundInInventoryString));
-            billDetails.setReturnMessage(String.format(" Following list of the product/product's [%s] are not available", productsNotFoundInInventoryString));
+        }catch(Exception exception){
+            logger.info(" Exception occurred while placing order "+exception);
+            throw new RuntimeException();
         }
         return billDetails;
     }
@@ -79,14 +89,21 @@ public class PlaceOrderServiceImpl implements PlaceOrderService {
     }
 
     private void populateCustomerDetailsForBillDetails(BillDetails billDetails, long customerId) {
-        Customer customer = customerService.findCustomerByCustomerId(customerId);
-        if (Objects.isNull(customer)) {
-            customer = new Customer.CustomerBuilder()
-                    .withCustomerType(CustomerType.NON_REGISTERED_CUSTOMER)
-                    .build();
-            customerService.saveCustomer(customer);
+        Customer customer;
+        try{
+            customer = customerService.findCustomerByCustomerId(customerId);
+            if (Objects.isNull(customer)) {
+                customer = new Customer.CustomerBuilder()
+                        .withCustomerType(CustomerType.NON_REGISTERED_CUSTOMER)
+                        .build();
+                customerService.saveCustomer(customer);
+            }
+            logger.info(String.format(" Customer Type for the current order is [%s] ", customer.getCustomerType()));
+
+        }catch(Exception e){
+            logger.error(" Error creating/updating new customer "+e.getCause());
+            throw new RuntimeException();
         }
-        logger.info(String.format(" Customer Type for the current order is [%s] ", customer.getCustomerType()));
         updateBillDetailsWithCustomerDetails(billDetails, customer);
     }
 
@@ -130,21 +147,27 @@ public class PlaceOrderServiceImpl implements PlaceOrderService {
 
     private List<Product> processOrderedProductsAndCalculateCostAndTaxes(List<OrderedProduct> orderedProducts, Map<Long, Product> products, BillDetails billDetails) {
         List<Product> productList = new ArrayList<>();
-        for (OrderedProduct orderedProduct : orderedProducts) {
-            Product product = products.get(orderedProduct.getProductId());
-            if (!orderDetailsValidator.isProductOrderedWithValidQuantity(orderedProduct, product, billDetails)) {
-                logger.info(" Product found with invalid Quantity. ");
-                updateBillDetailsForInvalidProductDetails(orderedProducts, billDetails, productList);
-                break;
-            } else {
-                logger.info(String.format("Calculating the cost and taxes for the ordered product [%s]", product.getProductName()));
-                calculateTotalCostAndTaxesForOrderedProduct(orderedProduct, product);
-                updateTotalCostAndTaxesForAllOrderedProducts(billDetails, orderedProduct);
-                setProductsLeft(orderedProduct, product);
-                updateBillDetailsForValidProducts(orderedProducts, billDetails);
-                productList.add(product);
+        try{
+            for (OrderedProduct orderedProduct : orderedProducts) {
+                Product product = products.get(orderedProduct.getProductId());
+                if (!orderDetailsValidator.isProductOrderedWithValidQuantity(orderedProduct, product, billDetails)) {
+                    logger.info(" Product found with invalid Quantity. ");
+                    updateBillDetailsForInvalidProductDetails(orderedProducts, billDetails, productList);
+                    break;
+                } else {
+                    logger.info(String.format("Calculating the cost and taxes for the ordered product [%s]", product.getProductName()));
+                    calculateTotalCostAndTaxesForOrderedProduct(orderedProduct, product);
+                    updateTotalCostAndTaxesForAllOrderedProducts(billDetails, orderedProduct);
+                    setProductsLeft(orderedProduct, product);
+                    updateBillDetailsForValidProducts(orderedProducts, billDetails);
+                    productList.add(product);
+                }
             }
+        }catch(Exception exception){
+            logger.info(" Exception occurred processOrderedProductsAndCalculateCostAndTaxes "+exception);
+            throw new RuntimeException();
         }
+
         return productList;
     }
 
@@ -195,7 +218,13 @@ public class PlaceOrderServiceImpl implements PlaceOrderService {
         billDetails.setOrderId(orders.getOrderId());
         billDetails.setCurrencyType(CurrencyType.INR);
         billDetails.setReturnMessage(" Orders created successfully with orders id : " + billDetails.getOrderId());
-        billDetails.setOrderDate(new Date());
+        billDetails.setBillingDate(getLocalDate());
+    }
+
+    private String getLocalDate() {
+        LocalDateTime localDate = LocalDateTime.now();//For reference
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(BILL_DETAIL_DATE_FORMAT);
+        return localDate.format(formatter);
     }
 
 
