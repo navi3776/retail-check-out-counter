@@ -1,21 +1,30 @@
-package com.shopping_cart.domain;
+package com.shopping_cart.dto;
 
 import java.io.Serializable;
 import java.util.Objects;
 
-public class CheckOutProduct implements Serializable {
+public class OrderedProduct implements Serializable {
 
     private long productId;
     private long unitsOrdered;
     private double totalCost;
     private double applicableTaxes;
+    private String orderMessage;
 
-    CheckOutProduct(OrderedProductBuilder orderedProductBuilder) {
+    public String getOrderMessage() {
+        return orderMessage;
+    }
+
+    public void setOrderMessage(String orderMessage) {
+        this.orderMessage = orderMessage;
+    }
+
+    OrderedProduct(OrderedProductBuilder orderedProductBuilder) {
         this.productId = orderedProductBuilder.productId;
         this.unitsOrdered = orderedProductBuilder.unit;
     }
 
-    CheckOutProduct() {
+    OrderedProduct() {
     }
 
     public double getTotalCost() {
@@ -55,7 +64,7 @@ public class CheckOutProduct implements Serializable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        CheckOutProduct that = (CheckOutProduct) o;
+        OrderedProduct that = (OrderedProduct) o;
         return productId == that.productId;
     }
 
@@ -66,11 +75,12 @@ public class CheckOutProduct implements Serializable {
 
     @Override
     public String toString() {
-        return "CheckOutProduct{" +
+        return "OrderedProduct{" +
                 "productId=" + productId +
                 ", unitsOrdered=" + unitsOrdered +
                 ", totalCost=" + totalCost +
                 ", applicableTaxes=" + applicableTaxes +
+                ", orderMessage='" + orderMessage + '\'' +
                 '}';
     }
 
@@ -88,8 +98,8 @@ public class CheckOutProduct implements Serializable {
             return this;
         }
 
-        public CheckOutProduct build() {
-            return new CheckOutProduct(this);
+        public OrderedProduct build() {
+            return new OrderedProduct(this);
         }
 
     }
