@@ -2,9 +2,7 @@ package com.shopping_cart.domain;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import javax.persistence.*;
 
@@ -21,13 +19,13 @@ public class Product implements Serializable {
     private String description;
     private String manufacturer;
 
-    @ManyToMany(cascade = {CascadeType.ALL}, fetch = FetchType.LAZY)
+    @OneToOne(cascade = {CascadeType.ALL}, fetch = FetchType.LAZY)
     @JoinTable(name = "product_category_xref", joinColumns = @JoinColumn(name = "productId"), inverseJoinColumns = @JoinColumn(name = "categoryId"))
-    private Set<Category> categories = new HashSet<>();
+    private TaxCategory category;
 
     @ManyToMany(cascade = {CascadeType.ALL}, fetch = FetchType.LAZY)
     @JoinTable(name = "order_product_xref", joinColumns = @JoinColumn(name = "productId"), inverseJoinColumns = @JoinColumn(name = "orderId"))
-    private Set<Orders> orders = new HashSet<>();
+    private List<Orders> orders = new ArrayList<>();
 
     public Product(ProductBuilder builder) {
         this.productId = builder.productId;
@@ -38,20 +36,20 @@ public class Product implements Serializable {
         this.manufacturer = builder.manufacturer;
     }
 
-    public Set<Orders> getOrders() {
+    public TaxCategory getCategory() {
+        return category;
+    }
+
+    public void setCategory(TaxCategory category) {
+        this.category = category;
+    }
+
+    public List<Orders> getOrders() {
         return orders;
     }
 
-    public void setOrders(Set<Orders> orders) {
+    public void setOrders(List<Orders> orders) {
         this.orders = orders;
-    }
-
-    public Set<Category> getCategories() {
-        return categories;
-    }
-
-    public void setCategories(Set<Category> categories) {
-        this.categories = categories;
     }
 
     public Product() {
@@ -140,7 +138,7 @@ public class Product implements Serializable {
         return "Product [productId=" + productId + ", productName="
                 + productName + ", price=" + price + ", unitsInInventory=" + unitsInInventory
                 + ", description=" + description + ", manufacturer="
-                + manufacturer + ", categories=" + categories + "]";
+                + manufacturer + ", category=" + category + "]";
     }
 
 
