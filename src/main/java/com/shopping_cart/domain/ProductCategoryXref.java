@@ -18,10 +18,11 @@ public class ProductCategoryXref implements Serializable {
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
 	private long productCategoryId;
+
 	private long productId;
 	private long categoryId;
 
-	/*@ManyToOne(fetch= FetchType.EAGER)
+	@ManyToOne(fetch= FetchType.EAGER)
 	@JoinColumn(name = "prodcutCategoryXrefs",insertable=false,updatable=false)
 	private Product product;
 
@@ -36,7 +37,7 @@ public class ProductCategoryXref implements Serializable {
 	public ProductCategoryXref(long productId, long categoryId) {
 		this.productId = productId;
 		this.categoryId = categoryId;
-	}*/
+	}
 
 	public ProductCategoryXref() {
 	}
