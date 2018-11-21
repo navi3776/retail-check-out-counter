@@ -4,7 +4,6 @@ import com.shopping_cart.domain.CurrencyType;
 import com.shopping_cart.domain.CustomerType;
 
 import java.io.Serializable;
-import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
