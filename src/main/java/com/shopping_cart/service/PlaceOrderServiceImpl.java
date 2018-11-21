@@ -10,12 +10,15 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.ObjectUtils;
 
 import javax.transaction.Transactional;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -81,6 +84,7 @@ public class PlaceOrderServiceImpl implements PlaceOrderService {
             logger.info(" Exception occurred while placing order "+exception);
             throw new RuntimeException();
         }
+        printBillDetails(billDetails);
         return billDetails;
     }
 
@@ -194,6 +198,22 @@ public class PlaceOrderServiceImpl implements PlaceOrderService {
         });
         billDetails.setTotalSalesTax(0.0);
         billDetails.setTotalCost(0.0);
+    }
+
+    private void printBillDetails(BillDetails billDetails){
+        if(!ObjectUtils.isEmpty(billDetails)){
+            if(billDetails.getOrderSuccessful()){
+                System.out.println(" Order Number is :"+billDetails.getOrderId());
+                System.out.println(" Billing Date is :"+billDetails.getBillingDate());
+                System.out.println(" Total Cost is :"+billDetails.getTotalCost());
+                System.out.println(" Total Taxes are :"+billDetails.getTotalSalesTax());
+                billDetails.getSuccessfulOrderedProducts().forEach(orderedProduct -> {
+                    System.out.println(" ProductId : "+orderedProduct.getProductId() +" Units " +
+                            "Ordered : "+orderedProduct.getUnitsOrdered() +" Total Cost : "+orderedProduct.getTotalCost()+" Total Taxes : "+orderedProduct.getApplicableTaxes());
+                });
+
+            }
+        }
     }
 
     private void updateTotalCostAndTaxesForAllOrderedProducts(BillDetails billDetails, OrderedProduct orderedProduct) {
